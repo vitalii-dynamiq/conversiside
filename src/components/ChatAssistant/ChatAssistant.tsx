@@ -48,7 +48,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showReasoning, setShowReasoning] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -75,18 +75,28 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
 
   const mockResponse = async (userMessage: string) => {
     setIsTyping(true);
+    
+    // First, show reasoning
+    const reasoning = "Analyzing query → Understanding context → Formulating response";
+    setMessages(prev => [...prev, {
+      id: Date.now().toString() + '-reasoning',
+      content: reasoning,
+      type: 'assistant',
+      reasoning: reasoning,
+      timestamp: Date.now()
+    }]);
+
     await new Promise(resolve => setTimeout(resolve, 1000));
     
+    // Then show the actual response
     const response = {
-      content: `I understand your message about "${userMessage}". Let me help you with that.`,
-      reasoning: "Analyzing user intent → Formulating response → Checking context"
+      content: `I understand your message about "${userMessage}". Let me help you with that.`
     };
 
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       content: response.content,
       type: 'assistant',
-      reasoning: response.reasoning,
       timestamp: Date.now()
     }]);
     setIsTyping(false);
@@ -196,23 +206,34 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                       <Bot className="w-5 h-5" />
                     )}
                   </div>
-                  <div
-                    className={cn(
-                      'rounded-2xl p-3',
-                      message.type === 'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-800'
-                    )}
-                  >
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                  </div>
+                  {message.reasoning ? (
+                    <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100 w-full">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Brain className="w-4 h-4" />
+                        <span className="font-medium">Thinking Process</span>
+                      </div>
+                      <div className="space-y-1">
+                        {message.reasoning.split('→').map((step, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">{index + 1}.</span>
+                            <span>{step.trim()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={cn(
+                        'rounded-2xl p-3',
+                        message.type === 'user'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-800'
+                      )}
+                    >
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </div>
+                  )}
                 </div>
-                {message.reasoning && showReasoning && (
-                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-500 bg-gray-50 p-2 rounded-lg">
-                    <Brain className="w-4 h-4" />
-                    <span>{message.reasoning}</span>
-                  </div>
-                )}
               </div>
             ))}
             {isTyping && (
@@ -233,28 +254,22 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
             {onContactSupport && (
               <button
                 onClick={onContactSupport}
-                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
               >
-                Talk to a human instead
+                Talk to a human instead →
               </button>
             )}
             <div className="flex items-end gap-2">
-              <div className="flex-1 relative">
+              <div className="flex-1">
                 <ReactTextareaAutosize
                   ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="w-full resize-none rounded-xl border border-gray-200 p-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-32"
+                  className="w-full resize-none rounded-xl border border-gray-200 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-32"
                   maxRows={4}
                 />
-                <button
-                  onClick={() => setShowReasoning(!showReasoning)}
-                  className="absolute right-12 bottom-3 text-gray-400 hover:text-gray-600"
-                >
-                  <Brain className="w-5 h-5" />
-                </button>
               </div>
               <button
                 onClick={handleSubmit}
