@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import ReactTextareaAutosize from 'react-textarea-autosize';
 import ReactMarkdown from 'react-markdown';
-import { ChevronDown, Send, User, Bot, Brain, X } from 'lucide-react';
+import { MessageCircle, Send, User, Bot, Brain, X, Plus, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface Theme {
@@ -48,7 +47,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showReasoning, setShowReasoning] = useState(true);
+  const [expandedReasonings, setExpandedReasonings] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -71,6 +70,26 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const toggleReasoning = (messageId: string) => {
+    setExpandedReasonings(prev => 
+      prev.includes(messageId) 
+        ? prev.filter(id => id !== messageId)
+        : [...prev, messageId]
+    );
+  };
+
+  const startNewConversation = () => {
+    setMessages([{
+      id: Date.now().toString(),
+      content: initialMessage,
+      type: 'assistant',
+      timestamp: Date.now()
+    }]);
+    setInputValue('');
+    setIsTyping(false);
+    setExpandedReasonings([]);
   };
 
   const mockResponse = async (userMessage: string) => {
@@ -142,12 +161,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
           isOpen && 'scale-90'
         )}
       >
-        <ChevronDown
-          className={cn(
-            'w-6 h-6 transition-transform duration-300',
-            isOpen && 'rotate-180'
-          )}
-        />
+        <MessageCircle className="w-7 h-7" />
       </button>
 
       {/* Chat Window */}
@@ -161,12 +175,19 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
             'animate-in slide-in-from-bottom duration-300',
             position === 'bottom-right' ? 'right-0' : 'left-0'
           )}
+          style={{ fontFamily: 'Inter, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased' }}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
-            <div>
+            <div className="flex items-center gap-4">
               <h3 className="font-semibold text-gray-800">Chat Assistant</h3>
-              <p className="text-sm text-gray-500">We typically reply instantly</p>
+              <button
+                onClick={startNewConversation}
+                className="flex items-center gap-1 px-2 py-1 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                New Chat
+              </button>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -208,18 +229,29 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                   </div>
                   {message.reasoning ? (
                     <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100 w-full">
-                      <div className="flex items-center gap-2 mb-2">
+                      <button
+                        onClick={() => toggleReasoning(message.id)}
+                        className="flex items-center gap-2 w-full"
+                      >
                         <Brain className="w-4 h-4" />
                         <span className="font-medium">Thinking Process</span>
-                      </div>
-                      <div className="space-y-1">
-                        {message.reasoning.split('→').map((step, index) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400">{index + 1}.</span>
-                            <span>{step.trim()}</span>
-                          </div>
-                        ))}
-                      </div>
+                        <ChevronRight
+                          className={cn(
+                            "w-4 h-4 ml-auto transition-transform",
+                            expandedReasonings.includes(message.id) && "rotate-90"
+                          )}
+                        />
+                      </button>
+                      {expandedReasonings.includes(message.id) && (
+                        <div className="mt-2 space-y-1">
+                          {message.reasoning.split('→').map((step, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">{index + 1}.</span>
+                              <span>{step.trim()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div
