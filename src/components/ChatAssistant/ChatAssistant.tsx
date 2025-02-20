@@ -50,6 +50,10 @@ export interface ChatAssistantProps {
   position?: 'bottom-right' | 'bottom-left';
   initialMessage?: string;
   onNewSession?: (sessionId: string) => void;
+  // New props
+  assistantName?: string;
+  contactSupportUrl?: string;
+  contactSupportEmail?: string;
 }
 
 interface Message {
@@ -86,7 +90,11 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   onContactSupport,
   position = 'bottom-right',
   initialMessage = "Hi! How can I help you today?",
-  onNewSession
+  onNewSession,
+  // New props with defaults
+  assistantName = "Chat Assistant",
+  contactSupportUrl,
+  contactSupportEmail
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -339,6 +347,26 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     }
   }, [handleSubmit]);
 
+  const formatRelativeTime = (timestamp: number) => {
+    const now = Date.now();
+    const diffInSeconds = Math.floor((now - timestamp) / 1000);
+    
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  };
+
+  const handleContactSupport = () => {
+    if (onContactSupport) {
+      onContactSupport();
+    } else if (contactSupportEmail) {
+      window.location.href = `mailto:${contactSupportEmail}`;
+    } else if (contactSupportUrl) {
+      window.open(contactSupportUrl, '_blank');
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -374,7 +402,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
           {/* Header */}
           <div className="flex-none flex items-center justify-between p-4 border-b border-gray-100 bg-white">
             <div className="flex items-center gap-4">
-              <h3 className="font-semibold text-gray-800">Chat Assistant</h3>
+              <h3 className="font-semibold text-gray-800">{assistantName}</h3>
               <button
                 onClick={startNewConversation}
                 className="flex items-center gap-1 px-2 py-1 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
@@ -452,10 +480,10 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                         </div>
                       )}
 
-                      {message.content && (
+                      <div className="flex flex-col gap-1">
                         <div
                           className={cn(
-                            'rounded-2xl p-3',
+                            'rounded-2xl p-3 text-sm leading-normal',
                             message.type === 'user'
                               ? 'bg-blue-600 text-white'
                               : 'bg-gray-100 text-gray-800'
@@ -463,7 +491,10 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                         >
                           <ReactMarkdown>{message.content}</ReactMarkdown>
                         </div>
-                      )}
+                        <span className="text-xs text-gray-400">
+                          {formatRelativeTime(message.timestamp)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -502,7 +533,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                   <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                     <Bot className="w-5 h-5 text-gray-600" />
                   </div>
-                  <div className="bg-gray-100 rounded-2xl p-3 animate-pulse">
+                  <div className="bg-gray-100 rounded-2xl p-3 animate-pulse text-sm">
                     Typing...
                   </div>
                 </div>
@@ -513,6 +544,17 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
 
           {/* Footer */}
           <div className="flex-none border-t border-gray-100 p-4 space-y-4 bg-white">
+            <div className="text-xs text-center text-gray-400">
+              <a
+                href="https://getdynamiq.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gray-600 transition-colors"
+              >
+                Powered by Dynamiq
+              </a>
+            </div>
+
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
                 {attachments.map(attachment => (
@@ -562,7 +604,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[42px] max-h-32"
+                  className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[42px] max-h-32 text-sm"
                   maxRows={4}
                 />
               </div>
@@ -581,10 +623,10 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
               </button>
             </div>
 
-            {onContactSupport && (
+            {(onContactSupport || contactSupportUrl || contactSupportEmail) && (
               <button
-                onClick={onContactSupport}
-                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={handleContactSupport}
+                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
               >
                 Talk to a human instead →
               </button>
