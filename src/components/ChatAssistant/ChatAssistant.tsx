@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import ReactTextareaAutosize from 'react-textarea-autosize';
 import ReactMarkdown from 'react-markdown';
@@ -320,7 +319,7 @@ interface User {
           className={cn(
             'absolute bottom-20 w-96 max-w-[calc(100vw-2rem)]',
             'bg-white rounded-2xl shadow-2xl',
-            'flex flex-col overflow-hidden',
+            'flex flex-col h-[32rem] max-h-[calc(100vh-10rem)]',
             'border border-gray-200',
             'animate-in slide-in-from-bottom duration-300',
             position === 'bottom-right' ? 'right-0' : 'left-0'
@@ -328,7 +327,7 @@ interface User {
           style={{ fontFamily: 'Inter, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <div className="flex-none flex items-center justify-between p-4 border-b border-gray-100">
             <div className="flex items-center gap-4">
               <h3 className="font-semibold text-gray-800">Chat Assistant</h3>
               <button
@@ -347,6 +346,7 @@ interface User {
             </button>
           </div>
 
+          {/* Messages container with flex-1 to take remaining space */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (
               <div
@@ -458,7 +458,8 @@ interface User {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-gray-100 p-4 space-y-4">
+          {/* Footer */}
+          <div className="flex-none border-t border-gray-100 p-4 space-y-4">
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
                 {attachments.map(attachment => (
