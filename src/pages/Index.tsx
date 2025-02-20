@@ -6,6 +6,22 @@ const Index = () => {
     console.log("Contacting human support...");
   };
 
+  const handleNewSession = (sessionId: string) => {
+    console.log("New chat session started:", sessionId);
+  };
+
+  // Example auth and metadata configuration
+  const authConfig = {
+    type: 'jwt' as const,
+    token: 'example-jwt-token'
+  };
+
+  const userMetadata = {
+    plan: 'pro',
+    company: 'Acme Inc',
+    preferredLanguage: 'en'
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="container mx-auto px-4 py-12">
@@ -18,9 +34,12 @@ const Index = () => {
       </div>
 
       <ChatAssistant
-        sessionId="demo-session"
         userId="demo-user"
+        userMetadata={userMetadata}
+        auth={authConfig}
+        apiEndpoint="/api/chat" // In real implementation
         onContactSupport={handleContactSupport}
+        onNewSession={handleNewSession}
         theme={{
           primary: '#007AFF',
           secondary: '#E5E7EB',

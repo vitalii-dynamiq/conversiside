@@ -11,13 +11,29 @@ export interface Theme {
   text?: string;
 }
 
+export interface UserMetadata {
+  [key: string]: string | number | boolean;
+}
+
+export interface AuthConfig {
+  type: 'oauth' | 'jwt';
+  token?: string;
+  oauthParams?: {
+    [key: string]: string;
+  };
+}
+
 export interface ChatAssistantProps {
-  sessionId: string;
+  sessionId?: string; // If not provided, will generate unique ID
   userId: string;
+  userMetadata?: UserMetadata;
+  auth?: AuthConfig;
+  apiEndpoint?: string;
   theme?: Theme;
   onContactSupport?: () => void;
   position?: 'bottom-right' | 'bottom-left';
   initialMessage?: string;
+  onNewSession?: (sessionId: string) => void;
 }
 
 interface Message {
@@ -26,6 +42,9 @@ interface Message {
   type: 'user' | 'assistant';
   reasoning?: string;
   timestamp: number;
+  metadata?: {
+    [key: string]: any;
+  };
 }
 
 const defaultTheme: Theme = {
@@ -35,21 +54,36 @@ const defaultTheme: Theme = {
   text: '#1F2937'
 };
 
+const generateSessionId = () => {
+  return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
 export const ChatAssistant: React.FC<ChatAssistantProps> = ({
-  sessionId,
+  sessionId: providedSessionId,
   userId,
+  userMetadata = {},
+  auth,
+  apiEndpoint,
   theme = defaultTheme,
   onContactSupport,
   position = 'bottom-right',
-  initialMessage = "Hi! How can I help you today?"
+  initialMessage = "Hi! How can I help you today?",
+  onNewSession
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [expandedReasonings, setExpandedReasonings] = useState<string[]>([]);
+  const [currentSessionId] = useState(() => providedSessionId || generateSessionId());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!providedSessionId && onNewSession) {
+      onNewSession(currentSessionId);
+    }
+  }, [providedSessionId, currentSessionId, onNewSession]);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -81,6 +115,10 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   };
 
   const startNewConversation = () => {
+    const newSessionId = generateSessionId();
+    if (onNewSession) {
+      onNewSession(newSessionId);
+    }
     setMessages([{
       id: Date.now().toString(),
       content: initialMessage,
@@ -93,6 +131,23 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   };
 
   const mockResponse = async (userMessage: string) => {
+    // In a real implementation, this would make an API call with auth and metadata
+    const requestConfig = {
+      sessionId: currentSessionId,
+      userId,
+      userMetadata,
+      auth,
+      message: userMessage,
+      messageMetadata: {
+        timestamp: Date.now(),
+        clientInfo: {
+          userAgent: navigator.userAgent,
+          language: navigator.language
+        }
+      }
+    };
+    
+    console.log('Would send request with config:', requestConfig);
     setIsTyping(true);
     
     // First, show reasoning
@@ -109,14 +164,44 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     
     // Then show the actual response
     const response = {
-      content: `I understand your message about "${userMessage}". Let me help you with that.`
+      content: `I understand your message about "${userMessage}". Let me help you with that.
+
+Here's a demonstration of markdown support:
+
+## Features
+- **Bold text** for emphasis
+- *Italic text* for subtle emphasis
+- \`inline code\` for technical terms
+
+\`\`\`typescript
+// Code block example
+interface User {
+  id: string;
+  name: string;
+}
+\`\`\`
+
+> Blockquote for important information
+
+1. Numbered lists
+2. For steps or sequences
+
+- Bullet points
+- For general lists
+
+[Links](https://example.com) are also supported!`
     };
 
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       content: response.content,
       type: 'assistant',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      metadata: {
+        sessionId: currentSessionId,
+        processingTime: 1.2, // mock value
+        modelVersion: '1.0' // mock value
+      }
     }]);
     setIsTyping(false);
   };
@@ -128,7 +213,12 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
       id: Date.now().toString(),
       content: inputValue.trim(),
       type: 'user',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      metadata: {
+        sessionId: currentSessionId,
+        userId,
+        userMetadata
+      }
     } as Message;
 
     setMessages(prev => [...prev, userMessage]);
