@@ -279,6 +279,77 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     await mockResponse(userMessageObj.content, userMessageObj.attachments);
   }, [apiEndpoint, auth?.token, streaming.enabled, handleStreamedResponse, handleDirectResponse]);
 
+  const startNewConversation = useCallback(() => {
+    const newSessionId = generateSessionId();
+    if (onNewSession) {
+      onNewSession(newSessionId);
+    }
+    setMessages([{
+      id: Date.now().toString(),
+      content: initialMessage,
+      type: 'assistant',
+      timestamp: Date.now()
+    }]);
+    setInputValue('');
+    setIsTyping(false);
+    setExpandedReasonings([]);
+    setAttachments([]);
+  }, [initialMessage, onNewSession]);
+
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const newAttachments: FileAttachment[] = files.map(file => ({
+      id: `${Date.now()}-${Math.random()}`,
+      file,
+      type: file.type.startsWith('image/') ? 'image' : 'document',
+      previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+    }));
+    
+    setAttachments(prev => [...prev, ...newAttachments]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments(prev => {
+      const attachment = prev.find(a => a.id === id);
+      if (attachment?.previewUrl) {
+        URL.revokeObjectURL(attachment.previewUrl);
+      }
+      return prev.filter(a => a.id !== id);
+    });
+  }, []);
+
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
+    if (!inputValue.trim() && attachments.length === 0) return;
+
+    const userMessageObj = {
+      id: Date.now().toString(),
+      content: inputValue.trim(),
+      type: 'user' as const,
+      timestamp: Date.now(),
+      attachments: [...attachments],
+      metadata: {
+        sessionId: currentSessionId,
+        userId,
+        userMetadata
+      }
+    };
+
+    setMessages(prev => [...prev, userMessageObj]);
+    setInputValue('');
+    setAttachments([]);
+    await mockResponse(userMessageObj.content, userMessageObj.attachments);
+  }, [inputValue, attachments, currentSessionId, userId, userMetadata, mockResponse]);
+
   return (
     <div
       className={cn(
