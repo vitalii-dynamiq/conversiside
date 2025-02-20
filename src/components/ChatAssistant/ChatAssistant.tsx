@@ -256,16 +256,22 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     setIsTyping(true);
     const messageId = Date.now().toString();
 
-    if (streaming.enabled) {
-      setMessages(prev => [...prev, {
-        id: messageId,
-        content: '',
-        type: 'assistant',
-        reasoning: 'Processing...',
-        timestamp: Date.now()
-      }]);
-    }
+    // Mock response for testing
+    const mockAssistantMessage = {
+      id: messageId,
+      content: `I understand you're saying: "${message}"`,
+      type: 'assistant' as const,
+      reasoning: 'Analyzing input → Processing message context → Formulating appropriate response → Considering attachments if present → Generating final response',
+      timestamp: Date.now()
+    };
 
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    setMessages(prev => [...prev, mockAssistantMessage]);
+    setIsTyping(false);
+
+    /* Comment out the actual API call for now
     try {
       const formData = new FormData();
       formData.append('message', message);
@@ -301,6 +307,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
       }]);
       setIsTyping(false);
     }
+    */
   }, [apiEndpoint, auth?.token, streaming.enabled, handleStreamedResponse, handleDirectResponse]);
 
   const handleSubmit = useCallback(async () => {
