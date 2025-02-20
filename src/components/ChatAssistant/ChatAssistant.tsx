@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactTextareaAutosize from 'react-textarea-autosize';
 import ReactMarkdown from 'react-markdown';
 import { MessageCircle, Send, User, Bot, Brain, X, Plus, ChevronRight, Paperclip, Image, FileText, XCircle } from 'lucide-react';
@@ -118,86 +118,27 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     }
   }, [isOpen, initialMessage]);
 
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
   useEffect(() => {
     if (messages.length > 0) {
-      const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      };
       scrollToBottom();
     }
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
-  const toggleReasoning = (messageId: string) => {
+  const toggleReasoning = useCallback((messageId: string) => {
     setExpandedReasonings(prev => 
       prev.includes(messageId) 
         ? prev.filter(id => id !== messageId)
         : [...prev, messageId]
     );
-  };
+  }, []);
 
-  const startNewConversation = () => {
-    const newSessionId = generateSessionId();
-    if (onNewSession) {
-      onNewSession(newSessionId);
-    }
-    setMessages([{
-      id: Date.now().toString(),
-      content: initialMessage,
-      type: 'assistant',
-      timestamp: Date.now()
-    }]);
-    setInputValue('');
-    setIsTyping(false);
-    setExpandedReasonings([]);
-    setAttachments([]);
-  };
-
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    const newAttachments: FileAttachment[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const isImage = file.type.startsWith('image/');
-      const isPDF = file.type === 'application/pdf';
-
-      if (!isImage && !isPDF) {
-        console.warn('Unsupported file type:', file.type);
-        continue;
-      }
-
-      const attachment: FileAttachment = {
-        id: `${Date.now()}-${i}`,
-        file,
-        type: isImage ? 'image' : 'document'
-      };
-
-      if (isImage) {
-        attachment.previewUrl = URL.createObjectURL(file);
-      }
-
-      newAttachments.push(attachment);
-    }
-
-    setAttachments(prev => [...prev, ...newAttachments]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const removeAttachment = (attachmentId: string) => {
-    setAttachments(prev => {
-      const attachment = prev.find(a => a.id === attachmentId);
-      if (attachment?.previewUrl) {
-        URL.revokeObjectURL(attachment.previewUrl);
-      }
-      return prev.filter(a => a.id !== attachmentId);
-    });
-  };
-
-  const handleStreamedResponse = async (messageId: string, response: Response) => {
+  const handleStreamedResponse = useCallback(async (messageId: string, response: Response) => {
     const reader = response.body?.getReader();
     if (!reader) return;
 
@@ -215,7 +156,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6); // Remove 'data: ' prefix
+          const data = line.slice(6);
           if (data === '[DONE]') continue;
 
           try {
@@ -249,9 +190,9 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     } finally {
       reader.releaseLock();
     }
-  };
+  }, [streaming.eventSource]);
 
-  const handleDirectResponse = async (messageId: string, response: Response) => {
+  const handleDirectResponse = useCallback(async (messageId: string, response: Response) => {
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || data.content || data.generatedText;
     const reasoning = data.reasoning;
@@ -263,14 +204,13 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
         reasoning: reasoning || msg.reasoning
       } : msg
     ));
-  };
+  }, []);
 
-  const mockResponse = async (userMessage: string, messageAttachments: FileAttachment[]) => {
+  const mockResponse = useCallback(async (userMessage: string, messageAttachments: FileAttachment[]) => {
     if (!apiEndpoint) {
       const messageId = Date.now().toString();
       setIsTyping(true);
 
-      // Add initial message for reasoning if streaming
       if (streaming.enabled) {
         setMessages(prev => [...prev, {
           id: messageId,
@@ -337,20 +277,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     setInputValue('');
     setAttachments([]);
     await mockResponse(userMessageObj.content, userMessageObj.attachments);
-  };
-
-  const handleSubmit = async () => {
-    if (!inputValue.trim() && attachments.length === 0) return;
-
-    await mockResponse(inputValue.trim(), attachments);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
+  }, [apiEndpoint, auth?.token, streaming.enabled, handleStreamedResponse, handleDirectResponse]);
 
   return (
     <div
