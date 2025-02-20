@@ -260,6 +260,28 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     setAttachments([]);
   }, [initialMessage, onNewSession]);
 
+  const getAuthHeaders = useCallback(() => {
+    if (!auth) return {};
+
+    switch (auth.type) {
+      case 'jwt':
+        return {
+          Authorization: `Bearer ${auth.token}`
+        };
+      case 'oauth':
+        if (auth.oauthParams) {
+          // For OAuth, include all provided parameters as headers
+          return Object.entries(auth.oauthParams).reduce((acc, [key, value]) => ({
+            ...acc,
+            [key]: value
+          }), {});
+        }
+        return {};
+      default:
+        return {};
+    }
+  }, [auth]);
+
   const sendMessage = useCallback(async (message: string, messageAttachments: FileAttachment[]) => {
     setIsTyping(true);
     const messageId = Date.now().toString();
@@ -290,7 +312,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
       const response = await fetch(apiEndpoint || '', {
         method: 'POST',
         headers: {
-          ...(auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
+          ...getAuthHeaders(),
           ...(streaming.enabled ? { Accept: 'text/event-stream' } : {}),
         },
         body: formData,
@@ -316,7 +338,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
       setIsTyping(false);
     }
     */
-  }, [apiEndpoint, auth?.token, streaming.enabled, handleStreamedResponse, handleDirectResponse]);
+  }, [getAuthHeaders, streaming.enabled, handleStreamedResponse, handleDirectResponse]);
 
   const handleSubmit = useCallback(async () => {
     if (!inputValue.trim() && attachments.length === 0) return;
