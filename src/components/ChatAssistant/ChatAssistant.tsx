@@ -516,7 +516,20 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                               : 'bg-gray-100 text-gray-800'
                           )}
                         >
-                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                          <ReactMarkdown
+                            className={cn(
+                              'prose prose-sm max-w-none',
+                              message.type === 'user' ? 'prose-invert' : '',
+                              '[&_p]:leading-normal [&_p]:m-0',
+                              '[&_pre]:bg-gray-800 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:my-2',
+                              '[&_code]:text-sm [&_code]:leading-relaxed',
+                              '[&_ul]:my-2 [&_ul]:pl-4 [&_li]:my-0.5',
+                              '[&_ol]:my-2 [&_ol]:pl-4',
+                              '[&_a]:text-blue-500 [&_a]:underline'
+                            )}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
                         </div>
                         <span className="text-xs text-gray-400">
                           {formatRelativeTime(message.timestamp)}
