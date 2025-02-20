@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactTextareaAutosize from 'react-textarea-autosize';
 import ReactMarkdown from 'react-markdown';
-import { MessageCircle, Send, User, Bot, Brain, X, Plus, ChevronRight } from 'lucide-react';
+import { MessageCircle, Send, User, Bot, Brain, X, Plus, ChevronRight, Paperclip, Image, FileText, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface Theme {
@@ -23,6 +23,13 @@ export interface AuthConfig {
   };
 }
 
+export interface FileAttachment {
+  id: string;
+  file: File;
+  type: 'image' | 'document';
+  previewUrl?: string;
+}
+
 export interface ChatAssistantProps {
   sessionId?: string; // If not provided, will generate unique ID
   userId: string;
@@ -42,6 +49,7 @@ interface Message {
   type: 'user' | 'assistant';
   reasoning?: string;
   timestamp: number;
+  attachments?: FileAttachment[];
   metadata?: {
     [key: string]: any;
   };
@@ -76,6 +84,8 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [expandedReasonings, setExpandedReasonings] = useState<string[]>([]);
   const [currentSessionId] = useState(() => providedSessionId || generateSessionId());
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -128,16 +138,67 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     setInputValue('');
     setIsTyping(false);
     setExpandedReasonings([]);
+    setAttachments([]);
   };
 
-  const mockResponse = async (userMessage: string) => {
-    // In a real implementation, this would make an API call with auth and metadata
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const newAttachments: FileAttachment[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const isImage = file.type.startsWith('image/');
+      const isPDF = file.type === 'application/pdf';
+
+      if (!isImage && !isPDF) {
+        console.warn('Unsupported file type:', file.type);
+        continue;
+      }
+
+      const attachment: FileAttachment = {
+        id: `${Date.now()}-${i}`,
+        file,
+        type: isImage ? 'image' : 'document'
+      };
+
+      if (isImage) {
+        attachment.previewUrl = URL.createObjectURL(file);
+      }
+
+      newAttachments.push(attachment);
+    }
+
+    setAttachments(prev => [...prev, ...newAttachments]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachment = (attachmentId: string) => {
+    setAttachments(prev => {
+      const attachment = prev.find(a => a.id === attachmentId);
+      if (attachment?.previewUrl) {
+        URL.revokeObjectURL(attachment.previewUrl);
+      }
+      return prev.filter(a => a.id !== attachmentId);
+    });
+  };
+
+  const mockResponse = async (userMessage: string, messageAttachments: FileAttachment[]) => {
+    const formData = new FormData();
+    formData.append('message', userMessage);
+    messageAttachments.forEach(attachment => {
+      formData.append('files[]', attachment.file);
+    });
+
     const requestConfig = {
       sessionId: currentSessionId,
       userId,
       userMetadata,
       auth,
-      message: userMessage,
+      formData,
       messageMetadata: {
         timestamp: Date.now(),
         clientInfo: {
@@ -150,7 +211,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     console.log('Would send request with config:', requestConfig);
     setIsTyping(true);
     
-    // First, show reasoning
     const reasoning = "Analyzing query → Understanding context → Formulating response";
     setMessages(prev => [...prev, {
       id: Date.now().toString() + '-reasoning',
@@ -162,7 +222,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
 
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Then show the actual response
     const response = {
       content: `I understand your message about "${userMessage}". Let me help you with that.
 
@@ -207,23 +266,25 @@ interface User {
   };
 
   const handleSubmit = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() && attachments.length === 0) return;
 
     const userMessage = {
       id: Date.now().toString(),
       content: inputValue.trim(),
-      type: 'user',
+      type: 'user' as const,
       timestamp: Date.now(),
+      attachments: [...attachments],
       metadata: {
         sessionId: currentSessionId,
         userId,
         userMetadata
       }
-    } as Message;
+    };
 
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
-    await mockResponse(userMessage.content);
+    setAttachments([]);
+    await mockResponse(userMessage.content, userMessage.attachments);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -240,7 +301,6 @@ interface User {
         position === 'bottom-right' ? 'right-4 bottom-4' : 'left-4 bottom-4'
       )}
     >
-      {/* Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -254,7 +314,6 @@ interface User {
         <MessageCircle className="w-7 h-7" />
       </button>
 
-      {/* Chat Window */}
       {isOpen && (
         <div
           className={cn(
@@ -267,7 +326,6 @@ interface User {
           )}
           style={{ fontFamily: 'Inter, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased' }}
         >
-          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
             <div className="flex items-center gap-4">
               <h3 className="font-semibold text-gray-800">Chat Assistant</h3>
@@ -287,7 +345,6 @@ interface User {
             </button>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (
               <div
@@ -356,6 +413,34 @@ interface User {
                     </div>
                   )}
                 </div>
+                {message.attachments && message.attachments.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {message.attachments.map(attachment => (
+                      <div
+                        key={attachment.id}
+                        className={cn(
+                          'rounded-lg overflow-hidden border border-gray-200',
+                          attachment.type === 'image' ? 'max-w-[200px]' : 'p-3 bg-gray-50'
+                        )}
+                      >
+                        {attachment.type === 'image' && attachment.previewUrl ? (
+                          <img
+                            src={attachment.previewUrl}
+                            alt="Attached"
+                            className="w-full h-auto"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <FileText className="w-5 h-5" />
+                            <span className="text-sm truncate">
+                              {attachment.file.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {isTyping && (
@@ -371,17 +456,49 @@ interface User {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Footer */}
           <div className="border-t border-gray-100 p-4 space-y-4">
-            {onContactSupport && (
-              <button
-                onClick={onContactSupport}
-                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                Talk to a human instead →
-              </button>
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
+                {attachments.map(attachment => (
+                  <div
+                    key={attachment.id}
+                    className="relative group flex items-center gap-2 bg-white px-2 py-1 rounded border border-gray-200"
+                  >
+                    {attachment.type === 'image' ? (
+                      <Image className="w-4 h-4 text-gray-500" />
+                    ) : (
+                      <FileText className="w-4 h-4 text-gray-500" />
+                    )}
+                    <span className="text-sm text-gray-600 max-w-[100px] truncate">
+                      {attachment.file.name}
+                    </span>
+                    <button
+                      onClick={() => removeAttachment(attachment.id)}
+                      className="opacity-0 group-hover:opacity-100 absolute -top-1 -right-1 bg-white rounded-full shadow-sm border border-gray-200"
+                    >
+                      <XCircle className="w-4 h-4 text-gray-500" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
+
             <div className="flex items-end gap-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+                multiple
+                accept="image/*,.pdf"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+
               <div className="flex-1">
                 <ReactTextareaAutosize
                   ref={inputRef}
@@ -393,12 +510,13 @@ interface User {
                   maxRows={4}
                 />
               </div>
+
               <button
                 onClick={handleSubmit}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() && attachments.length === 0}
                 className={cn(
                   'p-3 rounded-xl transition-all duration-200',
-                  inputValue.trim()
+                  (inputValue.trim() || attachments.length > 0)
                     ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-700'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 )}
@@ -406,6 +524,15 @@ interface User {
                 <Send className="w-5 h-5" />
               </button>
             </div>
+
+            {onContactSupport && (
+              <button
+                onClick={onContactSupport}
+                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Talk to a human instead →
+              </button>
+            )}
           </div>
         </div>
       )}
