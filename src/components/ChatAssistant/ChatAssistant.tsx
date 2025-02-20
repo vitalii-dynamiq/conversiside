@@ -30,12 +30,21 @@ export interface FileAttachment {
   previewUrl?: string;
 }
 
+interface StreamingConfig {
+  enabled: boolean;
+  eventSource?: {
+    messageEvent?: string;
+    reasoningEvent?: string;
+  };
+}
+
 export interface ChatAssistantProps {
   sessionId?: string; // If not provided, will generate unique ID
   userId: string;
   userMetadata?: UserMetadata;
   auth?: AuthConfig;
   apiEndpoint?: string;
+  streaming?: StreamingConfig;
   theme?: Theme;
   onContactSupport?: () => void;
   position?: 'bottom-right' | 'bottom-left';
@@ -72,6 +81,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   userMetadata = {},
   auth,
   apiEndpoint,
+  streaming = { enabled: false },
   theme = defaultTheme,
   onContactSupport,
   position = 'bottom-right',
@@ -186,94 +196,135 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     });
   };
 
-  const mockResponse = async (userMessage: string, messageAttachments: FileAttachment[]) => {
-    const formData = new FormData();
-    formData.append('message', userMessage);
-    messageAttachments.forEach(attachment => {
-      formData.append('files[]', attachment.file);
-    });
+  const handleStreamedResponse = async (messageId: string, response: Response) => {
+    const reader = response.body?.getReader();
+    if (!reader) return;
 
-    const requestConfig = {
-      sessionId: currentSessionId,
-      userId,
-      userMetadata,
-      auth,
-      formData,
-      messageMetadata: {
-        timestamp: Date.now(),
-        clientInfo: {
-          userAgent: navigator.userAgent,
-          language: navigator.language
+    const decoder = new TextDecoder();
+    let currentContent = '';
+    let currentReasoning = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6); // Remove 'data: ' prefix
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            
+            if (streaming.eventSource?.reasoningEvent && 
+                parsed.event === streaming.eventSource.reasoningEvent) {
+              currentReasoning = parsed.data || parsed.content;
+              setMessages(prev => prev.map(msg => 
+                msg.id === messageId ? { ...msg, reasoning: currentReasoning } : msg
+              ));
+            } else if (!streaming.eventSource?.messageEvent || 
+                       parsed.event === streaming.eventSource.messageEvent) {
+              const content = parsed.choices?.[0]?.delta?.content || 
+                            parsed.choices?.[0]?.message?.content ||
+                            parsed.content ||
+                            parsed.data;
+              
+              if (content) {
+                currentContent += content;
+                setMessages(prev => prev.map(msg => 
+                  msg.id === messageId ? { ...msg, content: currentContent } : msg
+                ));
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing SSE data:', e);
+          }
         }
       }
-    };
-    
-    console.log('Would send request with config:', requestConfig);
-    setIsTyping(true);
-    
-    const reasoning = "Analyzing query → Understanding context → Formulating response";
-    setMessages(prev => [...prev, {
-      id: Date.now().toString() + '-reasoning',
-      content: reasoning,
-      type: 'assistant',
-      reasoning: reasoning,
-      timestamp: Date.now()
-    }]);
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const response = {
-      content: `I understand your message about "${userMessage}". Let me help you with that.
-
-Here's a demonstration of markdown support:
-
-## Features
-- **Bold text** for emphasis
-- *Italic text* for subtle emphasis
-- \`inline code\` for technical terms
-
-\`\`\`typescript
-// Code block example
-interface User {
-  id: string;
-  name: string;
-}
-\`\`\`
-
-> Blockquote for important information
-
-1. Numbered lists
-2. For steps or sequences
-
-- Bullet points
-- For general lists
-
-[Links](https://example.com) are also supported!`
-    };
-
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      content: response.content,
-      type: 'assistant',
-      timestamp: Date.now(),
-      metadata: {
-        sessionId: currentSessionId,
-        processingTime: 1.2, // mock value
-        modelVersion: '1.0' // mock value
-      }
-    }]);
-    setIsTyping(false);
+    } finally {
+      reader.releaseLock();
+    }
   };
 
-  const handleSubmit = async () => {
-    if (!inputValue.trim() && attachments.length === 0) return;
+  const handleDirectResponse = async (messageId: string, response: Response) => {
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || data.content || data.generatedText;
+    const reasoning = data.reasoning;
 
-    const userMessage = {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { 
+        ...msg, 
+        content: content || msg.content,
+        reasoning: reasoning || msg.reasoning
+      } : msg
+    ));
+  };
+
+  const mockResponse = async (userMessage: string, messageAttachments: FileAttachment[]) => {
+    if (!apiEndpoint) {
+      const messageId = Date.now().toString();
+      setIsTyping(true);
+
+      // Add initial message for reasoning if streaming
+      if (streaming.enabled) {
+        setMessages(prev => [...prev, {
+          id: messageId,
+          content: '',
+          type: 'assistant',
+          reasoning: 'Processing...',
+          timestamp: Date.now()
+        }]);
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('message', userMessage);
+        messageAttachments.forEach(attachment => {
+          formData.append('files[]', attachment.file);
+        });
+
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            ...(auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
+            ...(streaming.enabled ? { Accept: 'text/event-stream' } : {}),
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        if (streaming.enabled) {
+          await handleStreamedResponse(messageId, response);
+        } else {
+          await handleDirectResponse(messageId, response);
+        }
+      } catch (error) {
+        console.error('Error in chat response:', error);
+        setMessages(prev => [...prev, {
+          id: messageId,
+          content: 'Sorry, there was an error processing your request.',
+          type: 'assistant',
+          timestamp: Date.now()
+        }]);
+      } finally {
+        setIsTyping(false);
+      }
+      return;
+    }
+
+    const userMessageObj = {
       id: Date.now().toString(),
-      content: inputValue.trim(),
+      content: userMessage.trim(),
       type: 'user' as const,
       timestamp: Date.now(),
-      attachments: [...attachments],
+      attachments: [...messageAttachments],
       metadata: {
         sessionId: currentSessionId,
         userId,
@@ -281,10 +332,16 @@ interface User {
       }
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessageObj]);
     setInputValue('');
     setAttachments([]);
-    await mockResponse(userMessage.content, userMessage.attachments);
+    await mockResponse(userMessageObj.content, userMessageObj.attachments);
+  };
+
+  const handleSubmit = async () => {
+    if (!inputValue.trim() && attachments.length === 0) return;
+
+    await mockResponse(inputValue.trim(), attachments);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
