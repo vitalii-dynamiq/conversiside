@@ -291,7 +291,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
       id: messageId,
       content: `I understand you're saying: "${message}"`,
       type: 'assistant' as const,
-      reasoning: 'Analyzing input → Processing message context → Formulating appropriate response → Considering attachments if present → Generating final response',
+      reasoning: 'Analyzing input → Processing message context → Formulating appropriate response → Considering attachments if present → Generating final response → Considering attachments if present → Generating final response',
       timestamp: Date.now()
     };
 
@@ -566,17 +566,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
 
           {/* Footer */}
           <div className="flex-none border-t border-gray-100 p-4 space-y-4 bg-white">
-            <div className="text-xs text-center text-gray-400">
-              <a
-                href="https://getdynamiq.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-gray-600 transition-colors"
-              >
-                Powered by Dynamiq
-              </a>
-            </div>
-
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
                 {attachments.map(attachment => (
@@ -653,6 +642,17 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                 Talk to a human instead →
               </button>
             )}
+
+            <div className="text-xs text-center text-gray-400 pt-2 border-t border-gray-100 mt-2">
+              <a
+                href="https://getdynamiq.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gray-600 transition-colors"
+              >
+                Powered by Dynamiq
+              </a>
+            </div>
           </div>
         </div>
       )}
