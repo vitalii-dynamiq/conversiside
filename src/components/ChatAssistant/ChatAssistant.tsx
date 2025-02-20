@@ -119,12 +119,13 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   }, [isOpen, initialMessage]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      };
+      scrollToBottom();
+    }
   }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const toggleReasoning = (messageId: string) => {
     setExpandedReasonings(prev => 
