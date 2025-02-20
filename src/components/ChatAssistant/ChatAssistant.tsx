@@ -95,10 +95,12 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   const [expandedReasonings, setExpandedReasonings] = useState<string[]>([]);
   const [currentSessionId] = useState(() => providedSessionId || generateSessionId());
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Initial setup effects
   useEffect(() => {
     if (!providedSessionId && onNewSession) {
       onNewSession(currentSessionId);
@@ -107,35 +109,40 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      setMessages([
-        {
-          id: '1',
-          content: initialMessage,
-          type: 'assistant',
-          timestamp: Date.now()
-        }
-      ]);
+      setMessages([{
+        id: '1',
+        content: initialMessage,
+        type: 'assistant',
+        timestamp: Date.now()
+      }]);
     }
-  }, [isOpen, initialMessage]);
+  }, [isOpen, messages.length, initialMessage]);
 
+  // Scrolling functionality
   const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
   useEffect(() => {
     if (messages.length > 0) {
       scrollToBottom();
     }
-  }, [messages, scrollToBottom]);
+  }, [messages.length, scrollToBottom]);
 
-  const toggleReasoning = useCallback((messageId: string) => {
-    setExpandedReasonings(prev => 
-      prev.includes(messageId) 
-        ? prev.filter(id => id !== messageId)
-        : [...prev, messageId]
-    );
+  // Message handling functions
+  const handleDirectResponse = useCallback(async (messageId: string, response: Response) => {
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || data.content || data.generatedText;
+    const reasoning = data.reasoning;
+
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { 
+        ...msg, 
+        content: content || msg.content,
+        reasoning: reasoning || msg.reasoning
+      } : msg
+    ));
+    setIsTyping(false);
   }, []);
 
   const handleStreamedResponse = useCallback(async (messageId: string, response: Response) => {
@@ -189,112 +196,18 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
       }
     } finally {
       reader.releaseLock();
+      setIsTyping(false);
     }
   }, [streaming.eventSource]);
 
-  const handleDirectResponse = useCallback(async (messageId: string, response: Response) => {
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || data.content || data.generatedText;
-    const reasoning = data.reasoning;
-
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId ? { 
-        ...msg, 
-        content: content || msg.content,
-        reasoning: reasoning || msg.reasoning
-      } : msg
-    ));
+  // UI interaction handlers
+  const toggleReasoning = useCallback((messageId: string) => {
+    setExpandedReasonings(prev => 
+      prev.includes(messageId) 
+        ? prev.filter(id => id !== messageId)
+        : [...prev, messageId]
+    );
   }, []);
-
-  const mockResponse = useCallback(async (userMessage: string, messageAttachments: FileAttachment[]) => {
-    if (!apiEndpoint) {
-      const messageId = Date.now().toString();
-      setIsTyping(true);
-
-      if (streaming.enabled) {
-        setMessages(prev => [...prev, {
-          id: messageId,
-          content: '',
-          type: 'assistant',
-          reasoning: 'Processing...',
-          timestamp: Date.now()
-        }]);
-      }
-
-      try {
-        const formData = new FormData();
-        formData.append('message', userMessage);
-        messageAttachments.forEach(attachment => {
-          formData.append('files[]', attachment.file);
-        });
-
-        const response = await fetch(apiEndpoint, {
-          method: 'POST',
-          headers: {
-            ...(auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
-            ...(streaming.enabled ? { Accept: 'text/event-stream' } : {}),
-          },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        if (streaming.enabled) {
-          await handleStreamedResponse(messageId, response);
-        } else {
-          await handleDirectResponse(messageId, response);
-        }
-      } catch (error) {
-        console.error('Error in chat response:', error);
-        setMessages(prev => [...prev, {
-          id: messageId,
-          content: 'Sorry, there was an error processing your request.',
-          type: 'assistant',
-          timestamp: Date.now()
-        }]);
-      } finally {
-        setIsTyping(false);
-      }
-      return;
-    }
-
-    const userMessageObj = {
-      id: Date.now().toString(),
-      content: userMessage.trim(),
-      type: 'user' as const,
-      timestamp: Date.now(),
-      attachments: [...messageAttachments],
-      metadata: {
-        sessionId: currentSessionId,
-        userId,
-        userMetadata
-      }
-    };
-
-    setMessages(prev => [...prev, userMessageObj]);
-    setInputValue('');
-    setAttachments([]);
-    await mockResponse(userMessageObj.content, userMessageObj.attachments);
-  }, [apiEndpoint, auth?.token, streaming.enabled, handleStreamedResponse, handleDirectResponse]);
-
-  const startNewConversation = useCallback(() => {
-    const newSessionId = generateSessionId();
-    if (onNewSession) {
-      onNewSession(newSessionId);
-    }
-    setMessages([{
-      id: Date.now().toString(),
-      content: initialMessage,
-      type: 'assistant',
-      timestamp: Date.now()
-    }]);
-    setInputValue('');
-    setIsTyping(false);
-    setExpandedReasonings([]);
-    setAttachments([]);
-  }, [initialMessage, onNewSession]);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -321,12 +234,74 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     });
   }, []);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
+  // Chat management functions
+  const startNewConversation = useCallback(() => {
+    const newSessionId = generateSessionId();
+    if (onNewSession) {
+      onNewSession(newSessionId);
     }
-  }, []);
+    setMessages([{
+      id: Date.now().toString(),
+      content: initialMessage,
+      type: 'assistant',
+      timestamp: Date.now()
+    }]);
+    setInputValue('');
+    setIsTyping(false);
+    setExpandedReasonings([]);
+    setAttachments([]);
+  }, [initialMessage, onNewSession]);
+
+  const sendMessage = useCallback(async (message: string, messageAttachments: FileAttachment[]) => {
+    setIsTyping(true);
+    const messageId = Date.now().toString();
+
+    if (streaming.enabled) {
+      setMessages(prev => [...prev, {
+        id: messageId,
+        content: '',
+        type: 'assistant',
+        reasoning: 'Processing...',
+        timestamp: Date.now()
+      }]);
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('message', message);
+      messageAttachments.forEach(attachment => {
+        formData.append('files[]', attachment.file);
+      });
+
+      const response = await fetch(apiEndpoint || '', {
+        method: 'POST',
+        headers: {
+          ...(auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
+          ...(streaming.enabled ? { Accept: 'text/event-stream' } : {}),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      if (streaming.enabled) {
+        await handleStreamedResponse(messageId, response);
+      } else {
+        await handleDirectResponse(messageId, response);
+      }
+    } catch (error) {
+      console.error('Error in chat response:', error);
+      setMessages(prev => [...prev, {
+        id: messageId,
+        content: 'Sorry, there was an error processing your request.',
+        type: 'assistant',
+        timestamp: Date.now()
+      }]);
+      setIsTyping(false);
+    }
+  }, [apiEndpoint, auth?.token, streaming.enabled, handleStreamedResponse, handleDirectResponse]);
 
   const handleSubmit = useCallback(async () => {
     if (!inputValue.trim() && attachments.length === 0) return;
@@ -347,8 +322,15 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     setMessages(prev => [...prev, userMessageObj]);
     setInputValue('');
     setAttachments([]);
-    await mockResponse(userMessageObj.content, userMessageObj.attachments);
-  }, [inputValue, attachments, currentSessionId, userId, userMetadata, mockResponse]);
+    await sendMessage(userMessageObj.content, userMessageObj.attachments);
+  }, [inputValue, attachments, currentSessionId, userId, userMetadata, sendMessage]);
+
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  }, [handleSubmit]);
 
   return (
     <div
