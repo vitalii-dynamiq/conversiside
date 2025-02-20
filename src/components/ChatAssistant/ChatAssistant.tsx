@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import ReactTextareaAutosize from 'react-textarea-autosize';
 import ReactMarkdown from 'react-markdown';
@@ -326,6 +327,7 @@ interface User {
           )}
           style={{ fontFamily: 'Inter, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased' }}
         >
+          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
             <div className="flex items-center gap-4">
               <h3 className="font-semibold text-gray-800">Chat Assistant</h3>
