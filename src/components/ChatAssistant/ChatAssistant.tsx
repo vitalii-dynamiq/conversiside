@@ -485,7 +485,7 @@ interface User {
               </div>
             )}
 
-            <div className="flex items-end gap-2">
+            <div className="flex items-center gap-2">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -496,19 +496,19 @@ interface User {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center"
               >
                 <Paperclip className="w-5 h-5" />
               </button>
 
-              <div className="flex-1">
+              <div className="flex-1 flex items-center">
                 <ReactTextareaAutosize
                   ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="w-full resize-none rounded-xl border border-gray-200 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-32"
+                  className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[42px] max-h-32"
                   maxRows={4}
                 />
               </div>
@@ -517,7 +517,7 @@ interface User {
                 onClick={handleSubmit}
                 disabled={!inputValue.trim() && attachments.length === 0}
                 className={cn(
-                  'p-3 rounded-xl transition-all duration-200',
+                  'p-2.5 rounded-xl transition-all duration-200 flex items-center justify-center',
                   (inputValue.trim() || attachments.length > 0)
                     ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-700'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
