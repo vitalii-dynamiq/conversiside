@@ -16,10 +16,15 @@ export interface UserMetadata {
 }
 
 export interface AuthConfig {
-  type: 'oauth' | 'jwt';
+  type: 'oauth' | 'jwt' | 'bearer';
   token?: string;
-  oauthParams?: {
-    [key: string]: string;
+  oauthConfig?: {
+    accessToken: string;
+    tokenType?: string;  // e.g., 'Bearer'
+    scope?: string;
+    // Additional OAuth-specific fields
+    clientId?: string;
+    clientSecret?: string;
   };
 }
 
@@ -265,16 +270,16 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
 
     switch (auth.type) {
       case 'jwt':
+      case 'bearer':
         return {
           Authorization: `Bearer ${auth.token}`
         };
       case 'oauth':
-        if (auth.oauthParams) {
-          // For OAuth, include all provided parameters as headers
-          return Object.entries(auth.oauthParams).reduce((acc, [key, value]) => ({
-            ...acc,
-            [key]: value
-          }), {});
+        if (auth.oauthConfig?.accessToken) {
+          return {
+            Authorization: `${auth.oauthConfig.tokenType || 'Bearer'} ${auth.oauthConfig.accessToken}`,
+            ...(auth.oauthConfig.scope ? { 'X-OAuth-Scope': auth.oauthConfig.scope } : {})
+          };
         }
         return {};
       default:
