@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { User, Bot, Brain, ChevronRight, FileText, Image } from 'lucide-react';
+import { User, Bot, ChevronDown, ChevronUp, FileText, Image } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Message, FileAttachment } from './types';
@@ -17,6 +17,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   expandedReasonings,
   toggleReasoning,
 }) => {
+  const reasoningSteps = message.reasoning ? message.reasoning.split('→').length : 0;
+  const isExpanded = expandedReasonings.includes(message.id);
+
   return (
     <div
       className={cn(
@@ -47,25 +50,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
         <div className="flex flex-col gap-2 w-full">
           {message.reasoning && (
-            <div className="text-[13px] text-gray-600 bg-white p-3.5 rounded-xl border border-gray-100/80 shadow-sm">
+            <div className="text-[12px] text-gray-500">
               <button
                 onClick={() => toggleReasoning(message.id)}
-                className="flex items-center gap-2 w-full"
+                className="flex items-center gap-1.5 hover:text-gray-900 transition-colors"
               >
-                <Brain className="w-4 h-4 stroke-[1.5]" />
-                <span className="font-medium">Thinking Process</span>
-                <ChevronRight
-                  className={cn(
-                    "w-4 h-4 ml-auto transition-transform stroke-[1.5]",
-                    expandedReasonings.includes(message.id) && "rotate-90"
-                  )}
-                />
+                {isExpanded ? (
+                  <ChevronUp className="w-3.5 h-3.5 stroke-[1.5]" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 stroke-[1.5]" />
+                )}
+                <span>Thinking process ({reasoningSteps} steps)</span>
               </button>
-              {expandedReasonings.includes(message.id) && (
-                <div className="mt-3 space-y-2">
+              {isExpanded && (
+                <div className="mt-2 space-y-1.5 pl-5">
                   {message.reasoning.split('→').map((step, index) => (
                     <div key={index} className="flex items-start gap-2">
-                      <span className="text-xs text-gray-400 mt-0.5">{index + 1}.</span>
+                      <span className="text-[11px] text-gray-400 mt-0.5 tabular-nums">{index + 1}.</span>
                       <span className="text-gray-600">{step.trim()}</span>
                     </div>
                   ))}
