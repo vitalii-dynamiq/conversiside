@@ -37,7 +37,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           className={cn(
             'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
             message.type === 'user'
-              ? 'bg-[#635BFF] text-white'
+              ? 'bg-[#7E69AB] text-white'
               : 'bg-gray-100 text-gray-600'
           )}
         >
@@ -80,20 +80,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className={cn(
                 'rounded-xl px-4 py-3 text-[14px] leading-relaxed shadow-sm',
                 message.type === 'user'
-                  ? 'bg-[#635BFF] text-white'
+                  ? 'bg-[#E5DEFF] text-gray-800'
                   : 'bg-white text-gray-900 border border-gray-100/80'
               )}
             >
               <ReactMarkdown
                 className={cn(
                   'prose prose-sm max-w-none',
-                  message.type === 'user' ? 'prose-invert' : '',
+                  message.type === 'user' ? '' : '',
                   '[&_p]:leading-relaxed [&_p]:m-0',
                   '[&_pre]:bg-gray-800 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:my-2',
                   '[&_code]:text-[13px] [&_code]:leading-relaxed',
                   '[&_ul]:my-2 [&_ul]:pl-4 [&_li]:my-1',
                   '[&_ol]:my-2 [&_ol]:pl-4',
-                  '[&_a]:text-[#635BFF] [&_a]:underline [&_a]:underline-offset-2'
+                  '[&_a]:text-[#7E69AB] [&_a]:underline [&_a]:underline-offset-2'
                 )}
               >
                 {message.content}
