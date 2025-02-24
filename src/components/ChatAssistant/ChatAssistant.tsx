@@ -1,89 +1,10 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import ReactTextareaAutosize from 'react-textarea-autosize';
-import ReactMarkdown from 'react-markdown';
-import { MessageCircle, Send, User, Bot, Brain, X, Plus, ChevronRight, Paperclip, Image, FileText, XCircle } from 'lucide-react';
+import { MessageCircle, X, Plus, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-export interface Theme {
-  primary?: string;
-  secondary?: string;
-  background?: string;
-  text?: string;
-}
-
-export interface UserMetadata {
-  [key: string]: string | number | boolean;
-}
-
-export interface AuthConfig {
-  type: 'oauth' | 'jwt' | 'bearer';
-  token?: string;
-  oauthConfig?: {
-    accessToken: string;
-    tokenType?: string;  // e.g., 'Bearer'
-    scope?: string;
-    // Additional OAuth-specific fields
-    clientId?: string;
-    clientSecret?: string;
-  };
-}
-
-export interface FileAttachment {
-  id: string;
-  file: File;
-  type: 'image' | 'document';
-  previewUrl?: string;
-}
-
-interface StreamingConfig {
-  enabled: boolean;
-  eventSource?: {
-    messageEvent?: string;
-    reasoningEvent?: string;
-  };
-}
-
-export interface ChatAssistantProps {
-  sessionId?: string; // If not provided, will generate unique ID
-  userId: string;
-  userMetadata?: UserMetadata;
-  auth?: AuthConfig;
-  apiEndpoint?: string;
-  streaming?: StreamingConfig;
-  theme?: Theme;
-  onContactSupport?: () => void;
-  position?: 'bottom-right' | 'bottom-left';
-  initialMessage?: string;
-  onNewSession?: (sessionId: string) => void;
-  // New props
-  assistantName?: string;
-  contactSupportUrl?: string;
-  contactSupportEmail?: string;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  type: 'user' | 'assistant';
-  reasoning?: string;
-  timestamp: number;
-  attachments?: FileAttachment[];
-  metadata?: {
-    [key: string]: any;
-  };
-}
-
-const defaultTheme: Theme = {
-  primary: '#007AFF',
-  secondary: '#E5E7EB',
-  background: '#FFFFFF',
-  text: '#1F2937'
-};
-
-const generateSessionId = () => {
-  return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
+import { ChatAssistantProps, Message, FileAttachment } from './types';
+import { generateSessionId, formatRelativeTime } from './utils';
+import { MessageBubble } from './MessageBubble';
+import { ChatInput } from './ChatInput';
 
 export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   sessionId: providedSessionId,
@@ -92,12 +13,16 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   auth,
   apiEndpoint,
   streaming = { enabled: false },
-  theme = defaultTheme,
+  theme = {
+    primary: '#007AFF',
+    secondary: '#E5E7EB',
+    background: '#FFFFFF',
+    text: '#1F2937'
+  },
   onContactSupport,
   position = 'bottom-right',
   initialMessage = "Hi! How can I help you today?",
   onNewSession,
-  // New props with defaults
   assistantName = "Chat Assistant",
   contactSupportUrl,
   contactSupportEmail
@@ -114,7 +39,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Initial setup effects
   useEffect(() => {
     if (!providedSessionId && onNewSession) {
       onNewSession(currentSessionId);
@@ -132,7 +56,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     }
   }, [isOpen, messages.length, initialMessage]);
 
-  // Scrolling functionality
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -143,7 +66,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     }
   }, [messages.length, scrollToBottom]);
 
-  // Message handling functions
   const handleDirectResponse = useCallback(async (messageId: string, response: Response) => {
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || data.content || data.generatedText;
@@ -214,7 +136,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     }
   }, [streaming.eventSource]);
 
-  // UI interaction handlers
   const toggleReasoning = useCallback((messageId: string) => {
     setExpandedReasonings(prev => 
       prev.includes(messageId) 
@@ -248,7 +169,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     });
   }, []);
 
-  // Chat management functions
   const startNewConversation = useCallback(() => {
     const newSessionId = generateSessionId();
     if (onNewSession) {
@@ -375,16 +295,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     }
   }, [handleSubmit]);
 
-  const formatRelativeTime = (timestamp: number) => {
-    const now = Date.now();
-    const diffInSeconds = Math.floor((now - timestamp) / 1000);
-    
-    if (diffInSeconds < 60) return 'just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  };
-
   const handleContactSupport = () => {
     if (onContactSupport) {
       onContactSupport();
@@ -402,7 +312,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
         position === 'bottom-right' ? 'right-4 bottom-4' : 'left-4 bottom-4'
       )}
     >
-      {/* Chat button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -428,7 +337,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
           )}
           style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
         >
-          {/* Header */}
           <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
             <div className="flex items-center gap-4">
               <h3 className="text-[15px] font-semibold text-gray-900">{assistantName}</h3>
@@ -448,129 +356,15 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
             </button>
           </div>
 
-          {/* Messages container */}
           <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/50">
             <div className="p-6 space-y-6">
               {messages.map((message) => (
-                <div
+                <MessageBubble
                   key={message.id}
-                  className={cn(
-                    'flex flex-col',
-                    message.type === 'user' && 'items-end'
-                  )}
-                >
-                  <div
-                    className={cn(
-                      'flex items-start gap-3 max-w-[85%]',
-                      message.type === 'user' && 'flex-row-reverse'
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
-                        message.type === 'user'
-                          ? 'bg-[#635BFF] text-white'
-                          : 'bg-gray-100 text-gray-600'
-                      )}
-                    >
-                      {message.type === 'user' ? (
-                        <User className="w-4.5 h-4.5 stroke-[1.5]" />
-                      ) : (
-                        <Bot className="w-4.5 h-4.5 stroke-[1.5]" />
-                      )}
-                    </div>
-
-                    <div className="flex flex-col gap-2 w-full">
-                      {message.reasoning && (
-                        <div className="text-[13px] text-gray-600 bg-white p-3.5 rounded-xl border border-gray-100/80 shadow-sm">
-                          <button
-                            onClick={() => toggleReasoning(message.id)}
-                            className="flex items-center gap-2 w-full"
-                          >
-                            <Brain className="w-4 h-4 stroke-[1.5]" />
-                            <span className="font-medium">Thinking Process</span>
-                            <ChevronRight
-                              className={cn(
-                                "w-4 h-4 ml-auto transition-transform stroke-[1.5]",
-                                expandedReasonings.includes(message.id) && "rotate-90"
-                              )}
-                            />
-                          </button>
-                          {expandedReasonings.includes(message.id) && (
-                            <div className="mt-3 space-y-2">
-                              {message.reasoning.split('→').map((step, index) => (
-                                <div key={index} className="flex items-start gap-2">
-                                  <span className="text-xs text-gray-400 mt-0.5">{index + 1}.</span>
-                                  <span className="text-gray-600">{step.trim()}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex flex-col gap-1.5">
-                        <div
-                          className={cn(
-                            'rounded-xl px-4 py-3 text-[14px] leading-relaxed shadow-sm',
-                            message.type === 'user'
-                              ? 'bg-[#635BFF] text-white'
-                              : 'bg-white text-gray-900 border border-gray-100/80'
-                          )}
-                        >
-                          <ReactMarkdown
-                            className={cn(
-                              'prose prose-sm max-w-none',
-                              message.type === 'user' ? 'prose-invert' : '',
-                              '[&_p]:leading-relaxed [&_p]:m-0',
-                              '[&_pre]:bg-gray-800 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:my-2',
-                              '[&_code]:text-[13px] [&_code]:leading-relaxed',
-                              '[&_ul]:my-2 [&_ul]:pl-4 [&_li]:my-1',
-                              '[&_ol]:my-2 [&_ol]:pl-4',
-                              '[&_a]:text-[#635BFF] [&_a]:underline [&_a]:underline-offset-2'
-                            )}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
-                        </div>
-                        <span className="text-xs text-gray-400 px-1">
-                          {formatRelativeTime(message.timestamp)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {message.attachments && message.attachments.length > 0 && (
-                    <div className="mt-2 space-y-2 max-w-[85%]">
-                      {message.attachments.map(attachment => (
-                        <div
-                          key={attachment.id}
-                          className={cn(
-                            'rounded-lg overflow-hidden',
-                            attachment.type === 'image' 
-                              ? 'max-w-[200px] border border-gray-100/80 shadow-sm' 
-                              : 'p-3 bg-white border border-gray-100/80 shadow-sm'
-                          )}
-                        >
-                          {attachment.type === 'image' && attachment.previewUrl ? (
-                            <img
-                              src={attachment.previewUrl}
-                              alt="Attached"
-                              className="w-full h-auto"
-                            />
-                          ) : (
-                            <div className="flex items-center gap-2 text-gray-600">
-                              <FileText className="w-4 h-4 stroke-[1.5]" />
-                              <span className="text-[13px] truncate">
-                                {attachment.file.name}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  message={message}
+                  expandedReasonings={expandedReasonings}
+                  toggleReasoning={toggleReasoning}
+                />
               ))}
               {isTyping && (
                 <div className="flex items-start gap-3">
@@ -586,95 +380,36 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex-none border-t border-gray-100 p-6 space-y-4 bg-white">
-            {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-xl">
-                {attachments.map(attachment => (
-                  <div
-                    key={attachment.id}
-                    className="relative group flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200/80 shadow-sm"
-                  >
-                    {attachment.type === 'image' ? (
-                      <Image className="w-4 h-4 text-gray-500 stroke-[1.5]" />
-                    ) : (
-                      <FileText className="w-4 h-4 text-gray-500 stroke-[1.5]" />
-                    )}
-                    <span className="text-[13px] text-gray-600 max-w-[120px] truncate">
-                      {attachment.file.name}
-                    </span>
-                    <button
-                      onClick={() => removeAttachment(attachment.id)}
-                      className="opacity-0 group-hover:opacity-100 absolute -top-1.5 -right-1.5 bg-white rounded-full shadow-sm border border-gray-200/80"
-                    >
-                      <XCircle className="w-4 h-4 text-gray-500 stroke-[1.5]" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+          <ChatInput
+            inputValue={inputValue}
+            setInputValue={setInputValue}
+            handleKeyPress={handleKeyPress}
+            handleSubmit={handleSubmit}
+            attachments={attachments}
+            removeAttachment={removeAttachment}
+            fileInputRef={fileInputRef}
+            inputRef={inputRef}
+            handleFileSelect={handleFileSelect}
+          />
 
-            <div className="flex items-center gap-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                className="hidden"
-                multiple
-                accept="image/*,.pdf"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-colors flex items-center justify-center"
-              >
-                <Paperclip className="w-5 h-5 stroke-[1.5]" />
-              </button>
+          {(onContactSupport || contactSupportUrl || contactSupportEmail) && (
+            <button
+              onClick={handleContactSupport}
+              className="text-[13px] text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Talk to a human instead →
+            </button>
+          )}
 
-              <div className="flex-1 flex items-center">
-                <ReactTextareaAutosize
-                  ref={inputRef}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type your message..."
-                  className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#635BFF] min-h-[46px] max-h-32"
-                  maxRows={4}
-                />
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                disabled={!inputValue.trim() && attachments.length === 0}
-                className={cn(
-                  'p-2.5 rounded-xl transition-all duration-200 flex items-center justify-center',
-                  (inputValue.trim() || attachments.length > 0)
-                    ? 'bg-[#635BFF] text-white shadow-md hover:bg-[#524FCC]'
-                    : 'bg-gray-50 text-gray-300 cursor-not-allowed'
-                )}
-              >
-                <Send className="w-5 h-5 stroke-[1.5]" />
-              </button>
-            </div>
-
-            {(onContactSupport || contactSupportUrl || contactSupportEmail) && (
-              <button
-                onClick={handleContactSupport}
-                className="text-[13px] text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                Talk to a human instead →
-              </button>
-            )}
-
-            <div className="text-[12px] text-center text-gray-400 pt-2 border-t border-gray-100 mt-2">
-              <a
-                href="https://getdynamiq.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-gray-600 transition-colors"
-              >
-                Powered by Dynamiq
-              </a>
-            </div>
+          <div className="text-[12px] text-center text-gray-400 pt-2 border-t border-gray-100 mt-2">
+            <a
+              href="https://getdynamiq.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gray-600 transition-colors"
+            >
+              Powered by Dynamiq
+            </a>
           </div>
         </div>
       )}

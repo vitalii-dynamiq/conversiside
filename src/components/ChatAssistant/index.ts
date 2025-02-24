@@ -1,3 +1,3 @@
 
-export { default as ChatAssistant } from './ChatAssistant';
-export type { ChatAssistantProps } from './ChatAssistant';
+export { ChatAssistant } from './ChatAssistant';
+export type { ChatAssistantProps } from './types';
