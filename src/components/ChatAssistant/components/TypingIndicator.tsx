@@ -9,7 +9,7 @@ export const TypingIndicator: React.FC = () => {
         <Bot className="w-4.5 h-4.5 text-gray-600 stroke-[1.5]" />
       </div>
       <div className="px-4 py-3 bg-white rounded-xl border border-gray-100/80 shadow-sm animate-pulse">
-        <span className="text-[14px] text-gray-600">Typing...</span>
+        <span className="text-[14px] text-gray-600">Thinking...</span>
       </div>
     </div>
   );
