@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactTextareaAutosize from 'react-textarea-autosize';
 import ReactMarkdown from 'react-markdown';
@@ -401,54 +402,55 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
         position === 'bottom-right' ? 'right-4 bottom-4' : 'left-4 bottom-4'
       )}
     >
+      {/* Chat button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'flex items-center justify-center w-14 h-14 rounded-full',
-          'bg-gradient-to-r from-blue-500 to-blue-600',
+          'bg-[#635BFF] hover:bg-[#524FCC]',
           'text-white shadow-lg hover:shadow-xl transition-all duration-300',
-          'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+          'focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:ring-offset-2',
           isOpen && 'scale-90'
         )}
       >
-        <MessageCircle className="w-7 h-7" />
+        <MessageCircle className="w-7 h-7 stroke-[1.5]" />
       </button>
 
       {isOpen && (
         <div
           className={cn(
-            'absolute bottom-20 w-96 max-w-[calc(100vw-2rem)]',
-            'bg-white rounded-2xl shadow-2xl',
-            'flex flex-col h-[32rem]',
-            'border border-gray-200',
+            'absolute bottom-20 w-[420px] max-w-[calc(100vw-2rem)]',
+            'bg-white rounded-2xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.15)]',
+            'flex flex-col h-[600px]',
+            'border border-gray-100',
             'animate-in slide-in-from-bottom duration-300 overflow-hidden',
             position === 'bottom-right' ? 'right-0' : 'left-0'
           )}
-          style={{ fontFamily: 'Inter, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased' }}
+          style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
         >
           {/* Header */}
-          <div className="flex-none flex items-center justify-between p-4 border-b border-gray-100 bg-white">
+          <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
             <div className="flex items-center gap-4">
-              <h3 className="font-semibold text-gray-800">{assistantName}</h3>
+              <h3 className="text-[15px] font-semibold text-gray-900">{assistantName}</h3>
               <button
                 onClick={startNewConversation}
-                className="flex items-center gap-1 px-2 py-1 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 New Chat
               </button>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50 transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 stroke-[1.5]" />
             </button>
           </div>
 
           {/* Messages container */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            <div className="p-4 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/50">
+            <div className="p-6 space-y-6">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -459,7 +461,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                 >
                   <div
                     className={cn(
-                      'flex items-start gap-2 max-w-[80%]',
+                      'flex items-start gap-3 max-w-[85%]',
                       message.type === 'user' && 'flex-row-reverse'
                     )}
                   >
@@ -467,39 +469,39 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                       className={cn(
                         'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
                         message.type === 'user'
-                          ? 'bg-blue-100 text-blue-600'
+                          ? 'bg-[#635BFF] text-white'
                           : 'bg-gray-100 text-gray-600'
                       )}
                     >
                       {message.type === 'user' ? (
-                        <User className="w-5 h-5" />
+                        <User className="w-4.5 h-4.5 stroke-[1.5]" />
                       ) : (
-                        <Bot className="w-5 h-5" />
+                        <Bot className="w-4.5 h-4.5 stroke-[1.5]" />
                       )}
                     </div>
 
                     <div className="flex flex-col gap-2 w-full">
                       {message.reasoning && (
-                        <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div className="text-[13px] text-gray-600 bg-white p-3.5 rounded-xl border border-gray-100/80 shadow-sm">
                           <button
                             onClick={() => toggleReasoning(message.id)}
                             className="flex items-center gap-2 w-full"
                           >
-                            <Brain className="w-4 h-4" />
+                            <Brain className="w-4 h-4 stroke-[1.5]" />
                             <span className="font-medium">Thinking Process</span>
                             <ChevronRight
                               className={cn(
-                                "w-4 h-4 ml-auto transition-transform",
+                                "w-4 h-4 ml-auto transition-transform stroke-[1.5]",
                                 expandedReasonings.includes(message.id) && "rotate-90"
                               )}
                             />
                           </button>
                           {expandedReasonings.includes(message.id) && (
-                            <div className="mt-2 space-y-1">
+                            <div className="mt-3 space-y-2">
                               {message.reasoning.split('→').map((step, index) => (
-                                <div key={index} className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-400">{index + 1}.</span>
-                                  <span>{step.trim()}</span>
+                                <div key={index} className="flex items-start gap-2">
+                                  <span className="text-xs text-gray-400 mt-0.5">{index + 1}.</span>
+                                  <span className="text-gray-600">{step.trim()}</span>
                                 </div>
                               ))}
                             </div>
@@ -507,31 +509,31 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                         </div>
                       )}
 
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1.5">
                         <div
                           className={cn(
-                            'rounded-2xl p-3 text-sm leading-normal',
+                            'rounded-xl px-4 py-3 text-[14px] leading-relaxed shadow-sm',
                             message.type === 'user'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-800'
+                              ? 'bg-[#635BFF] text-white'
+                              : 'bg-white text-gray-900 border border-gray-100/80'
                           )}
                         >
                           <ReactMarkdown
                             className={cn(
                               'prose prose-sm max-w-none',
                               message.type === 'user' ? 'prose-invert' : '',
-                              '[&_p]:leading-normal [&_p]:m-0',
-                              '[&_pre]:bg-gray-800 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:my-2',
-                              '[&_code]:text-sm [&_code]:leading-relaxed',
-                              '[&_ul]:my-2 [&_ul]:pl-4 [&_li]:my-0.5',
+                              '[&_p]:leading-relaxed [&_p]:m-0',
+                              '[&_pre]:bg-gray-800 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:my-2',
+                              '[&_code]:text-[13px] [&_code]:leading-relaxed',
+                              '[&_ul]:my-2 [&_ul]:pl-4 [&_li]:my-1',
                               '[&_ol]:my-2 [&_ol]:pl-4',
-                              '[&_a]:text-blue-500 [&_a]:underline'
+                              '[&_a]:text-[#635BFF] [&_a]:underline [&_a]:underline-offset-2'
                             )}
                           >
                             {message.content}
                           </ReactMarkdown>
                         </div>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400 px-1">
                           {formatRelativeTime(message.timestamp)}
                         </span>
                       </div>
@@ -539,13 +541,15 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                   </div>
 
                   {message.attachments && message.attachments.length > 0 && (
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-2 space-y-2 max-w-[85%]">
                       {message.attachments.map(attachment => (
                         <div
                           key={attachment.id}
                           className={cn(
-                            'rounded-lg overflow-hidden border border-gray-200',
-                            attachment.type === 'image' ? 'max-w-[200px]' : 'p-3 bg-gray-50'
+                            'rounded-lg overflow-hidden',
+                            attachment.type === 'image' 
+                              ? 'max-w-[200px] border border-gray-100/80 shadow-sm' 
+                              : 'p-3 bg-white border border-gray-100/80 shadow-sm'
                           )}
                         >
                           {attachment.type === 'image' && attachment.previewUrl ? (
@@ -556,8 +560,8 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                             />
                           ) : (
                             <div className="flex items-center gap-2 text-gray-600">
-                              <FileText className="w-5 h-5" />
-                              <span className="text-sm truncate">
+                              <FileText className="w-4 h-4 stroke-[1.5]" />
+                              <span className="text-[13px] truncate">
                                 {attachment.file.name}
                               </span>
                             </div>
@@ -569,12 +573,12 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                 </div>
               ))}
               {isTyping && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-gray-600" />
+                    <Bot className="w-4.5 h-4.5 text-gray-600 stroke-[1.5]" />
                   </div>
-                  <div className="bg-gray-100 rounded-2xl p-3 animate-pulse text-sm">
-                    Typing...
+                  <div className="px-4 py-3 bg-white rounded-xl border border-gray-100/80 shadow-sm animate-pulse">
+                    <span className="text-[14px] text-gray-600">Typing...</span>
                   </div>
                 </div>
               )}
@@ -583,27 +587,27 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="flex-none border-t border-gray-100 p-4 space-y-4 bg-white">
+          <div className="flex-none border-t border-gray-100 p-6 space-y-4 bg-white">
             {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
+              <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-xl">
                 {attachments.map(attachment => (
                   <div
                     key={attachment.id}
-                    className="relative group flex items-center gap-2 bg-white px-2 py-1 rounded border border-gray-200"
+                    className="relative group flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200/80 shadow-sm"
                   >
                     {attachment.type === 'image' ? (
-                      <Image className="w-4 h-4 text-gray-500" />
+                      <Image className="w-4 h-4 text-gray-500 stroke-[1.5]" />
                     ) : (
-                      <FileText className="w-4 h-4 text-gray-500" />
+                      <FileText className="w-4 h-4 text-gray-500 stroke-[1.5]" />
                     )}
-                    <span className="text-sm text-gray-600 max-w-[100px] truncate">
+                    <span className="text-[13px] text-gray-600 max-w-[120px] truncate">
                       {attachment.file.name}
                     </span>
                     <button
                       onClick={() => removeAttachment(attachment.id)}
-                      className="opacity-0 group-hover:opacity-100 absolute -top-1 -right-1 bg-white rounded-full shadow-sm border border-gray-200"
+                      className="opacity-0 group-hover:opacity-100 absolute -top-1.5 -right-1.5 bg-white rounded-full shadow-sm border border-gray-200/80"
                     >
-                      <XCircle className="w-4 h-4 text-gray-500" />
+                      <XCircle className="w-4 h-4 text-gray-500 stroke-[1.5]" />
                     </button>
                   </div>
                 ))}
@@ -621,9 +625,9 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center"
+                className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-colors flex items-center justify-center"
               >
-                <Paperclip className="w-5 h-5" />
+                <Paperclip className="w-5 h-5 stroke-[1.5]" />
               </button>
 
               <div className="flex-1 flex items-center">
@@ -633,7 +637,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[42px] max-h-32 text-sm"
+                  className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#635BFF] min-h-[46px] max-h-32"
                   maxRows={4}
                 />
               </div>
@@ -644,24 +648,24 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                 className={cn(
                   'p-2.5 rounded-xl transition-all duration-200 flex items-center justify-center',
                   (inputValue.trim() || attachments.length > 0)
-                    ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-700'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    ? 'bg-[#635BFF] text-white shadow-md hover:bg-[#524FCC]'
+                    : 'bg-gray-50 text-gray-300 cursor-not-allowed'
                 )}
               >
-                <Send className="w-5 h-5" />
+                <Send className="w-5 h-5 stroke-[1.5]" />
               </button>
             </div>
 
             {(onContactSupport || contactSupportUrl || contactSupportEmail) && (
               <button
                 onClick={handleContactSupport}
-                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-[13px] text-gray-500 hover:text-gray-700 transition-colors"
               >
                 Talk to a human instead →
               </button>
             )}
 
-            <div className="text-xs text-center text-gray-400 pt-2 border-t border-gray-100 mt-2">
+            <div className="text-[12px] text-center text-gray-400 pt-2 border-t border-gray-100 mt-2">
               <a
                 href="https://getdynamiq.ai"
                 target="_blank"
