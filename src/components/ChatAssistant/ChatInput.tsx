@@ -15,6 +15,7 @@ interface ChatInputProps {
   fileInputRef: React.RefObject<HTMLInputElement>;
   inputRef: React.RefObject<HTMLTextAreaElement>;
   handleFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  allowFileUpload?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -27,6 +28,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   fileInputRef,
   inputRef,
   handleFileSelect,
+  allowFileUpload = true,
 }) => {
   return (
     <div className="flex-none border-t border-gray-100 p-6 space-y-4 bg-white">
@@ -65,12 +67,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           multiple
           accept="image/*,.pdf"
         />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-colors flex items-center justify-center"
-        >
-          <Paperclip className="w-5 h-5 stroke-[1.5]" />
-        </button>
+        {allowFileUpload && (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-colors flex items-center justify-center"
+          >
+            <Paperclip className="w-5 h-5 stroke-[1.5]" />
+          </button>
+        )}
 
         <div className="flex-1 flex items-center">
           <ReactTextareaAutosize

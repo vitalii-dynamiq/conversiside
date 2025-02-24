@@ -45,6 +45,9 @@ export interface ChatAssistantProps {
   assistantName?: string;
   contactSupportUrl?: string;
   contactSupportEmail?: string;
+  allowFileUpload?: boolean;
+  showThinkingProcess?: boolean;
+  showContactSupport?: boolean;
 }
 
 export interface FileAttachment {

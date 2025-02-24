@@ -25,7 +25,10 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   onNewSession,
   assistantName = "Chat Assistant",
   contactSupportUrl,
-  contactSupportEmail
+  contactSupportEmail,
+  allowFileUpload = true,
+  showThinkingProcess = true,
+  showContactSupport = true
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -362,7 +365,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
                 <MessageBubble
                   key={message.id}
                   message={message}
-                  expandedReasonings={expandedReasonings}
+                  expandedReasonings={showThinkingProcess ? expandedReasonings : []}
                   toggleReasoning={toggleReasoning}
                 />
               ))}
@@ -390,18 +393,19 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
             fileInputRef={fileInputRef}
             inputRef={inputRef}
             handleFileSelect={handleFileSelect}
+            allowFileUpload={allowFileUpload}
           />
 
-          {(onContactSupport || contactSupportUrl || contactSupportEmail) && (
+          {showContactSupport && (onContactSupport || contactSupportUrl || contactSupportEmail) && (
             <button
               onClick={handleContactSupport}
-              className="text-[13px] text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-[13px] text-gray-500 hover:text-gray-700 transition-colors px-6 py-2"
             >
               Talk to a human instead →
             </button>
           )}
 
-          <div className="text-[12px] text-center text-gray-400 pt-2 border-t border-gray-100 mt-2">
+          <div className="text-[12px] text-center text-gray-400 pt-2 border-t border-gray-100 mt-2 pb-3">
             <a
               href="https://getdynamiq.ai"
               target="_blank"
