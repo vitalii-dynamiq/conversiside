@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatAssistantProps, Message, FileAttachment } from './types';
 import { generateSessionId } from './utils';
@@ -327,7 +328,11 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
           isOpen && 'scale-90'
         )}
       >
-        <MessageCircle className="w-7 h-7 stroke-[1.5]" />
+        {isOpen ? (
+          <X className="w-7 h-7 stroke-[1.5]" />
+        ) : (
+          <MessageCircle className="w-7 h-7 stroke-[1.5]" />
+        )}
       </button>
 
       {isOpen && (
