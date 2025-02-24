@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageCircle, X, Plus, Bot } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatAssistantProps, Message, FileAttachment } from './types';
-import { generateSessionId, formatRelativeTime } from './utils';
-import { MessageBubble } from './MessageBubble';
+import { generateSessionId } from './utils';
 import { ChatInput } from './ChatInput';
+import { Header } from './components/Header';
+import { MessagesContainer } from './components/MessagesContainer';
+import { Footer } from './components/Footer';
 
 export const ChatAssistant: React.FC<ChatAssistantProps> = ({
   sessionId: providedSessionId,
@@ -147,6 +149,23 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
     );
   }, []);
 
+  const startNewConversation = useCallback(() => {
+    const newSessionId = generateSessionId();
+    if (onNewSession) {
+      onNewSession(newSessionId);
+    }
+    setMessages([{
+      id: Date.now().toString(),
+      content: initialMessage,
+      type: 'assistant',
+      timestamp: Date.now()
+    }]);
+    setInputValue('');
+    setIsTyping(false);
+    setExpandedReasonings([]);
+    setAttachments([]);
+  }, [initialMessage, onNewSession]);
+
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     const newAttachments: FileAttachment[] = files.map(file => ({
@@ -171,23 +190,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
       return prev.filter(a => a.id !== id);
     });
   }, []);
-
-  const startNewConversation = useCallback(() => {
-    const newSessionId = generateSessionId();
-    if (onNewSession) {
-      onNewSession(newSessionId);
-    }
-    setMessages([{
-      id: Date.now().toString(),
-      content: initialMessage,
-      type: 'assistant',
-      timestamp: Date.now()
-    }]);
-    setInputValue('');
-    setIsTyping(false);
-    setExpandedReasonings([]);
-    setAttachments([]);
-  }, [initialMessage, onNewSession]);
 
   const getAuthHeaders = useCallback(() => {
     if (!auth) return {};
@@ -340,48 +342,20 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
           )}
           style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
         >
-          <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
-            <div className="flex items-center gap-4">
-              <h3 className="text-[15px] font-semibold text-gray-900">{assistantName}</h3>
-              <button
-                onClick={startNewConversation}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                New Chat
-              </button>
-            </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50 transition-colors"
-            >
-              <X className="w-5 h-5 stroke-[1.5]" />
-            </button>
-          </div>
+          <Header
+            assistantName={assistantName}
+            onNewChat={startNewConversation}
+            onClose={() => setIsOpen(false)}
+          />
 
-          <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/50">
-            <div className="p-6 space-y-6">
-              {messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  expandedReasonings={showThinkingProcess ? expandedReasonings : []}
-                  toggleReasoning={toggleReasoning}
-                />
-              ))}
-              {isTyping && (
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                    <Bot className="w-4.5 h-4.5 text-gray-600 stroke-[1.5]" />
-                  </div>
-                  <div className="px-4 py-3 bg-white rounded-xl border border-gray-100/80 shadow-sm animate-pulse">
-                    <span className="text-[14px] text-gray-600">Typing...</span>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
+          <MessagesContainer
+            messages={messages}
+            expandedReasonings={expandedReasonings}
+            toggleReasoning={toggleReasoning}
+            isTyping={isTyping}
+            showThinkingProcess={showThinkingProcess}
+            messagesEndRef={messagesEndRef}
+          />
 
           <ChatInput
             inputValue={inputValue}
@@ -396,25 +370,12 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({
             allowFileUpload={allowFileUpload}
           />
 
-          {showContactSupport && (onContactSupport || contactSupportUrl || contactSupportEmail) && (
-            <button
-              onClick={handleContactSupport}
-              className="text-[13px] text-gray-500 hover:text-gray-700 transition-colors px-6 py-2"
-            >
-              Talk to a human instead →
-            </button>
-          )}
-
-          <div className="text-[12px] text-center text-gray-400 pt-2 border-t border-gray-100 mt-2 pb-3">
-            <a
-              href="https://getdynamiq.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-gray-600 transition-colors"
-            >
-              Powered by Dynamiq
-            </a>
-          </div>
+          <Footer
+            showContactSupport={showContactSupport}
+            onContactSupport={onContactSupport}
+            contactSupportUrl={contactSupportUrl}
+            contactSupportEmail={contactSupportEmail}
+          />
         </div>
       )}
     </div>
