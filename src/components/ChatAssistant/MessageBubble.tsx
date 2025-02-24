@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { User, Bot, ChevronDown, ChevronUp, FileText, Image } from 'lucide-react';
+import { UserRound, Bot, ChevronDown, ChevronUp, FileText, Image } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Message, FileAttachment } from './types';
@@ -42,7 +42,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
         >
           {message.type === 'user' ? (
-            <User className="w-4.5 h-4.5 stroke-[1.5]" />
+            <UserRound className="w-4.5 h-4.5 stroke-[1.5]" />
           ) : (
             <Bot className="w-4.5 h-4.5 stroke-[1.5]" />
           )}
