@@ -12,8 +12,8 @@ interface ChatInputProps {
   handleSubmit: () => void;
   attachments: FileAttachment[];
   removeAttachment: (id: string) => void;
-  fileInputRef: React.RefElement<HTMLInputElement>;
-  inputRef: React.RefElement<HTMLTextAreaElement>;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLTextAreaElement>;
   handleFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
